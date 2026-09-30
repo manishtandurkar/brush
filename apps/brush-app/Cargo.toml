@@ -28,6 +28,7 @@ brush-render.path = "../../crates/brush-render"
 brush-serde.path = "../../crates/brush-serde"
 
 rrfd.path = "../../crates/rrfd"
+pressure-monitor.path = "../../../../monitor"
 
 
 tokio.workspace = true

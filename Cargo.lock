@@ -948,6 +948,7 @@ dependencies = [
  "image",
  "jni",
  "log",
+ "pressure-monitor",
  "rand 0.10.2",
  "rrfd",
  "serde",
@@ -6937,6 +6938,17 @@ name = "presser"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8cf8e6a8aa66ce33f63993ffc4ea4271eb5b0530a9002db8455ea6050c77bfa"
+
+[[package]]
+name = "pressure-monitor"
+version = "0.1.0"
+dependencies = [
+ "core-foundation 0.10.1",
+ "libc",
+ "objc2 0.6.4",
+ "objc2-foundation 0.3.2",
+ "objc2-metal 0.3.2",
+]
 
 [[package]]
 name = "prettyplease"

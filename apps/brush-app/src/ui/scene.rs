@@ -927,6 +927,16 @@ impl AppPane for ScenePanel {
         let delta_time = self.last_draw.map_or(0.0, |t| t.elapsed().as_secs_f32());
         self.last_draw = Some(cur_time);
 
+        if let Some(monitor) = pressure_monitor::global() {
+            if delta_time > 0.0 {
+                monitor.report_ui_frame_ms(f64::from(delta_time) * 1000.0);
+            }
+            if let Some(memory) = process.device_memory_usage() {
+                monitor.set_burn_memory(memory.bytes_in_use, memory.bytes_reserved);
+            }
+        }
+        let continuous = std::env::var_os("ADAPTIVE_CONTINUOUS").is_some_and(|v| v == "1");
+
         // Empty scene, nothing to show - show load buttons
         let show_welcome = !process.is_training()
             && !self.has_splats
@@ -1069,9 +1079,12 @@ impl AppPane for ScenePanel {
                         self.frame as usize,
                         settings.background.unwrap_or(Vec3::ZERO),
                         settings.splat_scale,
-                        self.splats_dirty,
+                        self.splats_dirty || continuous,
                     );
                     self.splats_dirty = false;
+                    if continuous {
+                        ui.ctx().request_repaint();
+                    }
                 }
 
                 if let Some(grid) = &mut self.grid {

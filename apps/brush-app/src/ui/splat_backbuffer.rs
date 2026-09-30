@@ -52,8 +52,11 @@ impl SplatBackbuffer {
         let pipe = AsyncMap::new(
             actor,
             async move |req: &RenderRequest| {
+                let start = web_time::Instant::now();
+                let splats = req.splats.get(req.state.frame).unwrap();
+                let num_splats = splats.num_splats();
                 let (image, _) = render_splats(
-                    req.splats.get(req.state.frame).unwrap(),
+                    splats,
                     &req.state.camera,
                     req.state.img_size,
                     req.state.background,
@@ -69,6 +72,11 @@ impl SplatBackbuffer {
                     .into_data_async()
                     .await
                     .expect("Failed to read back frame");
+
+                if let Some(monitor) = pressure_monitor::global() {
+                    monitor.report_render_ms(start.elapsed().as_secs_f64() * 1000.0);
+                    monitor.set_num_splats(num_splats);
+                }
 
                 Frame {
                     width,

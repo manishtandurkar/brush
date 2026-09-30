@@ -51,6 +51,7 @@ fn main() -> Result<(), anyhow::Error> {
                 use crate::ui::app::App;
 
                 brush_process::burn_init_setup().await;
+                pressure_monitor::init_global_from_env()?;
 
                 let logger = env_logger::Builder::from_default_env()
                     .target(env_logger::Target::Stdout)

@@ -30,6 +30,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "adaptive-policy"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -924,6 +931,7 @@ dependencies = [
 name = "brush-app"
 version = "1.0.0"
 dependencies = [
+ "adaptive-policy",
  "android_logger",
  "anyhow",
  "async-channel",
@@ -952,6 +960,7 @@ dependencies = [
  "rand 0.10.2",
  "rrfd",
  "serde",
+ "serde_json",
  "tokio",
  "tokio-stream",
  "tracing",

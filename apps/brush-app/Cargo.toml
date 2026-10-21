@@ -29,6 +29,7 @@ brush-serde.path = "../../crates/brush-serde"
 
 rrfd.path = "../../crates/rrfd"
 pressure-monitor.path = "../../../../monitor"
+adaptive-policy.path = "../../../../policy"
 
 
 tokio.workspace = true
@@ -93,6 +94,9 @@ web-sys = { workspace = true, features = [
 getrandom = { version = "0.4", features = ["wasm_js"] }
 # Activate wasm_js for getrandom 0.3 as well (pulled in via `ahash` → `burn-core`).
 getrandom_03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
+
+[dev-dependencies]
+serde_json = { workspace = true, features = ["std"] }
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 dwarf-debug-info = true

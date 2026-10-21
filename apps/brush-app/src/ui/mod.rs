@@ -1,3 +1,4 @@
+mod adaptive;
 pub mod app;
 pub mod camera_controls;
 

@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use web_time::Instant;
 
+use crate::ui::adaptive::AdaptiveDetail;
 use crate::ui::panels::AppPane;
 use crate::ui::settings_popup::SettingsPopup;
 use crate::ui::splat_backbuffer::SplatBackbuffer;
@@ -121,9 +122,18 @@ pub struct ScenePanel {
     dataset: Option<brush_dataset::Dataset>,
     #[serde(skip)]
     pose_match_alpha: f32,
+    #[serde(skip)]
+    adaptive: Option<AdaptiveDetail>,
 }
 
 impl ScenePanel {
+    fn adaptive(&mut self) -> &mut AdaptiveDetail {
+        self.adaptive.get_or_insert_with(|| {
+            let continuous = std::env::var_os("ADAPTIVE_CONTINUOUS").is_some_and(|v| v == "1");
+            AdaptiveDetail::from_env(continuous)
+        })
+    }
+
     fn draw_load_buttons(&mut self, ui: &mut egui::Ui) -> Option<DataSource> {
         let button_height = 28.0;
         let button_color = Color32::from_rgb(70, 130, 180);
@@ -856,6 +866,7 @@ impl AppPane for ScenePanel {
                 // For non-training updates (e.g., loading), always redraw
                 if !process.is_training() {
                     self.splats_dirty = true;
+                    self.adaptive().on_scene_changed();
 
                     // When training, datasets handle this.
                     if let Some(up_axis) = up_axis {
@@ -880,6 +891,11 @@ impl AppPane for ScenePanel {
                         }
                     }
                 }
+            }
+            ProcessMessage::DoneLoading if !process.is_training() => {
+                let frame_count = self.frame_count;
+                self.adaptive()
+                    .on_scene_loaded(&process.current_splats(), frame_count);
             }
             ProcessMessage::Warning { error } => {
                 self.warnings.push(ErrorDisplay::new(error));
@@ -936,6 +952,9 @@ impl AppPane for ScenePanel {
             }
         }
         let continuous = std::env::var_os("ADAPTIVE_CONTINUOUS").is_some_and(|v| v == "1");
+        if self.adaptive().tick() {
+            self.splats_dirty = true;
+        }
 
         // Empty scene, nothing to show - show load buttons
         let show_welcome = !process.is_training()

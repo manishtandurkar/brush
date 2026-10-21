@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use tokio::sync::watch;
 
 /// Read-only frame-indexed view of splat snapshots published by a
@@ -5,6 +7,7 @@ use tokio::sync::watch;
 #[derive(Clone)]
 pub struct Slot<T> {
     rx: watch::Receiver<Vec<T>>,
+    tx: Option<Arc<watch::Sender<Vec<T>>>>,
 }
 
 impl<T: Clone + Send + Sync + 'static> Slot<T> {
@@ -14,7 +17,7 @@ impl<T: Clone + Send + Sync + 'static> Slot<T> {
         // Drop the sender immediately — the receiver still works for
         // reads but observes the initial empty Vec forever.
         let (_, rx) = watch::channel(Vec::new());
-        Self { rx }
+        Self { rx, tx: None }
     }
 
     pub fn get(&self, index: usize) -> Option<T> {
@@ -32,6 +35,22 @@ impl<T: Clone + Send + Sync + 'static> Slot<T> {
     pub fn is_empty(&self) -> bool {
         self.rx.borrow().is_empty()
     }
+
+    /// Replace the existing value at `index` from the consumer side, e.g. to
+    /// swap in a reduced-detail copy of a loaded scene so the full one can be
+    /// freed. Returns false (and does nothing) if there is no value at `index`.
+    pub fn replace(&self, index: usize, value: T) -> bool {
+        let Some(tx) = &self.tx else {
+            return false;
+        };
+        tx.send_if_modified(|vec| match vec.get_mut(index) {
+            Some(slot) => {
+                *slot = value;
+                true
+            }
+            None => false,
+        })
+    }
 }
 
 impl<T: Clone + Send + Sync + 'static> Default for Slot<T> {
@@ -43,7 +62,7 @@ impl<T: Clone + Send + Sync + 'static> Default for Slot<T> {
 /// Write side of a [`Slot`]. Single producer; consumers hold cloneable
 /// [`Slot`] receivers.
 pub struct SlotSender<T> {
-    tx: watch::Sender<Vec<T>>,
+    tx: Arc<watch::Sender<Vec<T>>>,
 }
 
 impl<T: Send + Sync + 'static> SlotSender<T> {
@@ -72,5 +91,9 @@ impl<T: Send + Sync + 'static> SlotSender<T> {
 /// (and any clones) goes to consumers.
 pub fn channel<T: Send + Sync + 'static>() -> (SlotSender<T>, Slot<T>) {
     let (tx, rx) = watch::channel(Vec::new());
-    (SlotSender { tx }, Slot { rx })
+    let tx = Arc::new(tx);
+    (
+        SlotSender { tx: tx.clone() },
+        Slot { rx, tx: Some(tx) },
+    )
 }

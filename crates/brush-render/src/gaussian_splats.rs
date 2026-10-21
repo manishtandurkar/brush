@@ -291,6 +291,21 @@ impl Splats {
         self.transforms.dims()[0] as u32
     }
 
+    /// Keep only the first `n` splats (all of them if `n >= num_splats`). On an
+    /// importance-ordered scene these are the `n` most important splats, which
+    /// is how a lower detail tier is rendered.
+    pub fn first_n(mut self, n: u32) -> Self {
+        let n = n.min(self.num_splats()) as usize;
+        if n == self.num_splats() as usize {
+            return self;
+        }
+        self.transforms = self.transforms.map(|t| t.slice(s![0..n]).detach());
+        self.sh_coeffs = self.sh_coeffs.map(|c| c.slice(s![0..n]).detach());
+        self.raw_opacities = self.raw_opacities.map(|o| o.slice(s![0..n]).detach());
+        self.min_scale = self.min_scale.map(|f| f.slice(s![0..n]));
+        self
+    }
+
     pub fn sh_degree(&self) -> u32 {
         let [_, n_coeffs, _] = self.sh_coeffs.dims();
         sh_degree_from_coeffs(n_coeffs as u32)

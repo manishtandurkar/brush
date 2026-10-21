@@ -129,8 +129,7 @@ pub struct ScenePanel {
 impl ScenePanel {
     fn adaptive(&mut self) -> &mut AdaptiveDetail {
         self.adaptive.get_or_insert_with(|| {
-            let continuous = std::env::var_os("ADAPTIVE_CONTINUOUS").is_some_and(|v| v == "1");
-            AdaptiveDetail::from_env(continuous)
+            AdaptiveDetail::from_env()
         })
     }
 
@@ -1053,6 +1052,7 @@ impl AppPane for ScenePanel {
             let (_, rotation, position) = view_eff.to_scale_rotation_translation();
             camera.position = position;
             camera.rotation = rotation;
+            self.adaptive().set_camera_position(position);
 
             let settings = process.get_cam_settings();
 
@@ -1101,6 +1101,16 @@ impl AppPane for ScenePanel {
                         self.splats_dirty || continuous,
                     );
                     self.splats_dirty = false;
+                    if self.adaptive().is_active() {
+                        let text = self.adaptive().status_lines().join("\n");
+                        let pos = rect.left_top() + egui::vec2(8.0, 8.0);
+                        let font = egui::FontId::monospace(12.0);
+                        let galley = ui.painter().layout_no_wrap(text, font, Color32::WHITE);
+                        let bg = Rect::from_min_size(pos, galley.size()).expand(6.0);
+                        ui.painter()
+                            .rect_filled(bg, 4.0, Color32::from_black_alpha(170));
+                        ui.painter().galley(pos, galley, Color32::WHITE);
+                    }
                     if continuous {
                         ui.ctx().request_repaint();
                     }

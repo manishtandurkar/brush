@@ -194,18 +194,18 @@ async fn run_process<
                 // over time. Clear out memory after each step to prevent this buildup.
                 device.memory_cleanup();
 
-                // For the first frame of a new file, clear existing frames
-                if frame == 0 {
-                    splat_view.clear();
-                }
-
                 // Capture stats before moving splats
                 let num_splats = splats.num_splats();
                 let sh_degree = splats.sh_degree();
                 let scene_scale = get_splat_bounds(splats.clone(), BOUND_PERCENTILE)
                     .await
                     .median_size();
-                splat_view.set(frame, splats);
+                // For the first frame of a new file, replace existing frames atomically
+                if frame == 0 {
+                    splat_view.reset(splats);
+                } else {
+                    splat_view.set(frame, splats);
+                }
 
                 emitter
                     .emit(ProcessMessage::SplatsUpdated {

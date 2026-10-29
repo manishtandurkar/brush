@@ -84,6 +84,15 @@ impl<T: Send + Sync + 'static> SlotSender<T> {
     pub fn clear(&self) {
         self.tx.send_modify(|vec| vec.clear());
     }
+
+    /// Drop all frames and publish `value` as frame 0 in one update, so
+    /// readers never observe an empty slot in between.
+    pub fn reset(&self, value: T) {
+        self.tx.send_modify(|vec| {
+            vec.clear();
+            vec.push(value);
+        });
+    }
 }
 
 /// Build a fresh `(SlotSender, Slot)` pair backed by a single
